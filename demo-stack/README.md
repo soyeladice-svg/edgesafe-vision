@@ -12,21 +12,28 @@ not required by the EdgeSafe Python package.
 ## Run
 
 ```bash
-docker compose -f demo-stack/compose.yaml up --build --abort-on-container-exit
+docker compose -f demo-stack/compose.yaml up --build --abort-on-container-exit --exit-code-from edgesafe-demo
 ```
 
-The EdgeSafe container runs the same deterministic synthetic pipeline used by
-the pure-Python quick start. Expected application summary:
+Compose waits for the local broker health check, then runs the EdgeSafe
+container and returns its exit status. The EdgeSafe container runs the same
+deterministic synthetic pipeline used by the pure-Python quick start. Expected
+application summary:
 
 ```text
 SUMMARY events=8 alarms_opened=2 alarms_resolved=1
 ```
 
-The local Mosquitto service exists only to make the optional integration stack
-ready for broker-oriented experiments; this first demo does not claim that the
-synthetic pipeline has exercised MQTT delivery.
+The local Mosquitto service uses the checked-in
+`demo-stack/mosquitto-no-auth.conf`. Anonymous access is intentional only for
+this synthetic, unexposed Compose network: the stack publishes no broker port
+to the host. It exists only to make the optional integration stack ready for
+broker-oriented experiments; this first demo does not claim that the synthetic
+pipeline has exercised MQTT delivery.
 
 ## Cleanup
+
+Always remove the stack after the run, including after a failed smoke test:
 
 ```bash
 docker compose -f demo-stack/compose.yaml down --volumes --remove-orphans
