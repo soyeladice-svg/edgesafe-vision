@@ -29,6 +29,12 @@ class CameraHealthTests(unittest.TestCase):
         health = evaluate_camera_health(report, stream_available=False)
         self.assertEqual(health.state, CameraHealthState.OFFLINE)
 
+    def test_available_stream_without_observations_is_unknown(self):
+        report = self.monitor.report("CAM-1", 10)
+        health = evaluate_camera_health(report, stream_available=True)
+        self.assertEqual(health.state, CameraHealthState.UNKNOWN)
+        self.assertEqual(health.reason, "no freshness observations yet")
+
     def test_fresh_signals_are_healthy_then_stale_is_degraded(self):
         self.monitor.mark_video("CAM-1", 10)
         self.monitor.mark_metadata("CAM-1", 10.4)
