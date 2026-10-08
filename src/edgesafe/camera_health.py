@@ -54,7 +54,7 @@ def evaluate_camera_health(
             CameraHealthState.HEALTHY,
             "stream available and freshness signals healthy",
         )
-    if freshness.last_video_at is None and freshness.last_metadata_at is None:
+    if freshness.video_age is None and freshness.metadata_age is None:
         return CameraHealthReport(
             freshness.camera_id,
             CameraHealthState.UNKNOWN,
