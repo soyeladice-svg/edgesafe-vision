@@ -86,10 +86,13 @@ edgesafe-doctor --config examples/doctor.example.json --evidence evidence.json -
 Shareable mode is opt-in. It preserves check categories and PASS/WARN/FAIL
 status while replacing operator-supplied identifiers with non-reversible local
 labels. The same sanitized results are used for terminal output, JSON stdout,
-and the evidence file. The default evidence format remains unchanged.
+and the evidence file, and text output does not print the operator-supplied
+evidence path. The default evidence format remains unchanged.
 
-Review evidence before sharing it externally: TCP targets, file paths, and
-service URLs may still reveal deployment details supplied by the operator.
+The bundle still retains platform system/release/machine metadata and the
+Python version. Shareable mode is therefore data minimization, not an anonymity,
+privacy, or security certification. Manually review every generated bundle
+before sharing it externally.
 
 EdgeSafe Doctor is read-only by design.
 
