@@ -115,9 +115,11 @@ print(check_service("edgesafe-demo.service"))
 ```
 
 Linux uses `systemctl is-active`. Windows uses a non-interactive Scheduled
-Task state query. Commands are invoked as argument lists with `shell=False`;
-unsupported platforms or missing platform tools return WARN. Windows behavior
-is fixture/mock tested in the existing Linux CI environment.
+Task state query: only `Running` is PASS; existing `Ready`, `Disabled`, or
+unrecognized states are WARN, while a missing/unreadable task is FAIL. Commands
+are invoked as argument lists with `shell=False`; unsupported platforms or
+missing platform tools return WARN. Windows behavior is fixture/mock tested in
+the existing Linux CI environment.
 
 ## 7. Normalize Frigate / MQTT events
 
