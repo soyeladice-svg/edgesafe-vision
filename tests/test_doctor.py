@@ -1,7 +1,10 @@
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from edgesafe.doctor import (
     CheckResult,
@@ -10,6 +13,7 @@ from edgesafe.doctor import (
     build_evidence_bundle,
     check_file,
     load_check_config,
+    main,
     parse_target,
     write_evidence_bundle,
 )
@@ -100,8 +104,7 @@ class DoctorTests(unittest.TestCase):
             payload = json.loads(target.read_text(encoding="utf-8"))
             self.assertEqual(payload["schema"], "edgesafe-evidence-v1")
 
-
-    def test_shareable_evidence_is_opt_in_and_deterministically_redacted(self):
+    def test_shareable_evidence_is_opt_in_and_uses_non_reversible_labels(self):
         results = [
             CheckResult("tcp:private.internal:443", "PASS", "connection established"),
             CheckResult("file:/srv/customer/secret.env", "FAIL", "not found"),
@@ -117,8 +120,62 @@ class DoctorTests(unittest.TestCase):
         serialized = json.dumps(shared["checks"])
         self.assertNotIn("private.internal", serialized)
         self.assertNotIn("/srv/customer", serialized)
-        self.assertIn("tcp:[redacted-", shared["checks"][0]["name"])
-        self.assertIn("file:[redacted-", shared["checks"][1]["name"])
+        self.assertEqual(shared["checks"][0]["name"], "tcp:[redacted-1]")
+        self.assertEqual(shared["checks"][1]["name"], "file:[redacted-2]")
+
+    @patch("edgesafe.doctor.run_checks")
+    def test_shareable_mode_redacts_json_stdout_and_evidence(self, run_checks):
+        run_checks.return_value = [
+            CheckResult(
+                "tcp:private.internal:443",
+                "PASS",
+                "connection established",
+            ),
+            CheckResult(
+                "file:/srv/customer/secret.env",
+                "FAIL",
+                "not found",
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence_path = Path(tmp) / "evidence.json"
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                code = main(
+                    [
+                        "--shareable",
+                        "--json",
+                        "--evidence",
+                        str(evidence_path),
+                    ]
+                )
+
+            json_output = stdout.getvalue()
+            evidence = evidence_path.read_text(encoding="utf-8")
+            self.assertEqual(code, 1)
+            for private_value in ("private.internal", "/srv/customer", "secret.env"):
+                self.assertNotIn(private_value, json_output)
+                self.assertNotIn(private_value, evidence)
+            stdout_checks = json.loads(json_output)
+            evidence_checks = json.loads(evidence)["checks"]
+            self.assertEqual(stdout_checks, evidence_checks)
+
+    @patch("edgesafe.doctor.run_checks")
+    def test_shareable_mode_redacts_terminal_output(self, run_checks):
+        run_checks.return_value = [
+            CheckResult(
+                "http://private.internal/health",
+                "PASS",
+                "HTTP 200",
+            )
+        ]
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            code = main(["--shareable"])
+
+        self.assertEqual(code, 0)
+        self.assertIn("http:[redacted-1]", stdout.getvalue())
+        self.assertNotIn("private.internal", stdout.getvalue())
 
 
 if __name__ == "__main__":
