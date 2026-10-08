@@ -88,7 +88,9 @@ print(render_markdown_report(results))
 
 The report preserves supplied check order, summarizes PASS/WARN/FAIL counts,
 and points to the first failing check only as a triage hint, never as a proven
-root cause.
+root cause. It renders each supplied check name and detail verbatim. Operator
+names, file paths, URLs, hostnames, service identifiers, or other deployment
+details therefore remain raw unless the caller redacts them before rendering.
 
 Review evidence before sharing it externally: TCP targets, file paths, and
 service URLs may still reveal deployment details supplied by the operator.
