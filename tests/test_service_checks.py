@@ -18,13 +18,34 @@ class ServiceCheckTests(unittest.TestCase):
         self.assertIn("inactive", result.detail)
 
     @patch("edgesafe.service_checks._run")
-    def test_windows_uses_argument_list_and_reports_state(self, run):
-        run.return_value = subprocess.CompletedProcess([], 0, "Ready\n", "")
+    def test_windows_running_passes_and_uses_named_argument(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0, "Running\n", "")
         result = check_service("EdgeSafe Demo", system="Windows")
         self.assertEqual(result.status, "PASS")
         args = run.call_args.args[0]
-        self.assertEqual(args[-1], "EdgeSafe Demo")
+        self.assertEqual(args[-2:], ["-TaskName", "EdgeSafe Demo"])
         self.assertIn("-NonInteractive", args)
+        self.assertIn("param([string]$TaskName)", args[args.index("-Command") + 1])
+
+    @patch("edgesafe.service_checks._run")
+    def test_windows_ready_and_disabled_warn(self, run):
+        for state in ("Ready", "Disabled"):
+            with self.subTest(state=state):
+                run.return_value = subprocess.CompletedProcess(
+                    [], 0, f"{state}\n", ""
+                )
+                result = check_service("EdgeSafe Demo", system="Windows")
+                self.assertEqual(result.status, "WARN")
+                self.assertIn(state.lower(), result.detail)
+
+    @patch("edgesafe.service_checks._run")
+    def test_windows_missing_task_fails(self, run):
+        run.return_value = subprocess.CompletedProcess(
+            [], 1, "", "Get-ScheduledTask: task not found"
+        )
+        result = check_service("Missing Task", system="Windows")
+        self.assertEqual(result.status, "FAIL")
+        self.assertIn("not found", result.detail)
 
     def test_unsupported_platform_warns(self):
         result = check_service("demo", system="Darwin")
