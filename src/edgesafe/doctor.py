@@ -336,7 +336,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         except OSError as exc:
             parser.error(f"cannot write evidence bundle: {exc}")
         if not args.json:
-            print(f"EVIDENCE  {evidence_path}")
+            if args.shareable:
+                print("EVIDENCE  [redacted path]")
+            else:
+                print(f"EVIDENCE  {evidence_path}")
 
     if args.json:
         print(json.dumps([asdict(x) for x in output_results], indent=2))
