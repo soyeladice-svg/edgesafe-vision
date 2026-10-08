@@ -46,6 +46,10 @@ Resolve a hostname without opening a TCP/HTTP connection:
 edgesafe-doctor --dns localhost
 ```
 
+This performs a system resolver lookup only; it opens no TCP/HTTP connection.
+The hostname query can still leave the machine through its configured DNS
+resolver, so use only targets you are authorized to disclose to that resolver.
+
 Probe a local HTTP endpoint:
 
 ```bash
