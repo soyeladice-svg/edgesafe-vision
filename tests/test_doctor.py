@@ -2,8 +2,8 @@ import json
 import socket
 import tempfile
 import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from edgesafe.doctor import (
     _safe_url_label,
@@ -42,6 +42,15 @@ class DoctorTests(unittest.TestCase):
         ):
             failed = check_dns("missing.example")
         self.assertEqual(failed.status, "FAIL")
+
+    def test_dns_check_fails_when_resolver_returns_no_addresses(self):
+        with patch(
+            "edgesafe.doctor.socket.getaddrinfo",
+            return_value=[],
+        ):
+            result = check_dns("empty.example")
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.detail, "no addresses resolved")
 
     def test_file_check(self):
         with tempfile.TemporaryDirectory() as tmp:
