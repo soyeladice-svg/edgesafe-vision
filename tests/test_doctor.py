@@ -161,6 +161,37 @@ class DoctorTests(unittest.TestCase):
             self.assertEqual(stdout_checks, evidence_checks)
 
     @patch("edgesafe.doctor.run_checks")
+    def test_shareable_mode_redacts_printed_evidence_path(self, run_checks):
+        run_checks.return_value = [
+            CheckResult(
+                "http://private.internal/health",
+                "PASS",
+                "HTTP 200",
+            )
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence_path = Path(tmp) / "private-customer" / "output.json"
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                code = main(
+                    [
+                        "--shareable",
+                        "--evidence",
+                        str(evidence_path),
+                    ]
+                )
+
+            output = stdout.getvalue()
+            evidence = evidence_path.read_text(encoding="utf-8")
+
+        self.assertEqual(code, 0)
+        self.assertIn("EVIDENCE  [redacted path]", output)
+        self.assertNotIn(str(evidence_path), output)
+        for private_value in ("private-customer", "private.internal"):
+            self.assertNotIn(private_value, output)
+            self.assertNotIn(private_value, evidence)
+
+    @patch("edgesafe.doctor.run_checks")
     def test_shareable_mode_redacts_terminal_output(self, run_checks):
         run_checks.return_value = [
             CheckResult(
