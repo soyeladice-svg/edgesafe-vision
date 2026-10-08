@@ -7,6 +7,8 @@ not required by the EdgeSafe Python package.
 
 - Docker with Compose support
 - roughly 512 MiB free memory for the two small demo containers
+- outbound network access to pull `python:3.12-slim` and
+  `eclipse-mosquitto:2` unless both images are already cached
 - no camera, GPU, credentials, private endpoints, or customer data
 
 ## Run
@@ -16,7 +18,9 @@ docker compose -f demo-stack/compose.yaml up --build --abort-on-container-exit -
 ```
 
 Compose waits for the local broker health check, then runs the EdgeSafe
-container and returns its exit status. The EdgeSafe container runs the same
+container and returns its exit status. The automated smoke test skips when a
+Docker daemon with Compose is unavailable; a skipped test is not startup
+evidence. The EdgeSafe container runs the same
 deterministic synthetic pipeline used by the pure-Python quick start. Expected
 application summary:
 
