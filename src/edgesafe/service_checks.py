@@ -46,14 +46,33 @@ def check_service(target: str, *, system: str | None = None) -> ServiceCheckResu
                     "-NoProfile",
                     "-NonInteractive",
                     "-Command",
-                    "Get-ScheduledTask -TaskName $args[0] | Select-Object -ExpandProperty State",
+                    (
+                        "param([string]$TaskName) "
+                        "(Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop).State"
+                    ),
+                    "-TaskName",
                     target,
                 ]
             )
             state = result.stdout.strip()
-            if result.returncode == 0 and state:
-                return ServiceCheckResult(target, "PASS", f"scheduled task {state}")
-            return ServiceCheckResult(target, "FAIL", "scheduled task not found or unreadable")
+            normalized = state.casefold()
+            if result.returncode != 0 or not state:
+                return ServiceCheckResult(
+                    target, "FAIL", "scheduled task not found or unreadable"
+                )
+            if normalized == "running":
+                return ServiceCheckResult(target, "PASS", "scheduled task running")
+            if normalized in {"ready", "disabled"}:
+                return ServiceCheckResult(
+                    target,
+                    "WARN",
+                    f"scheduled task exists but is {normalized}",
+                )
+            return ServiceCheckResult(
+                target,
+                "WARN",
+                f"scheduled task state is {state!r}; running status not established",
+            )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return ServiceCheckResult(target, "WARN", f"service check unavailable: {type(exc).__name__}")
 
