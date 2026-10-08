@@ -161,10 +161,6 @@ class MqttAdapterTests(unittest.TestCase):
             )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class WebhookAdapterTests(unittest.TestCase):
     def setUp(self):
         self.payload = {
@@ -188,6 +184,11 @@ class WebhookAdapterTests(unittest.TestCase):
             self.assertEqual(event.event_type, EventType.PERSON)
             self.assertEqual(event.attributes["source"], "synthetic-webhook")
 
+    def test_matches_normalized_mqtt_conversion(self):
+        webhook = parse_webhook_event(self.payload)
+        mqtt = parse_normalized_mqtt_event("edgesafe/events", self.payload)
+        self.assertEqual(webhook, mqtt)
+
     def test_rejects_malformed_json_and_non_object_json(self):
         with self.assertRaisesRegex(ValueError, "valid JSON"):
             parse_webhook_event("{not-json")
@@ -201,3 +202,7 @@ class WebhookAdapterTests(unittest.TestCase):
         incomplete.pop("cameraId")
         with self.assertRaisesRegex(ValueError, "missing cameraId"):
             parse_webhook_event(incomplete)
+
+
+if __name__ == "__main__":
+    unittest.main()
